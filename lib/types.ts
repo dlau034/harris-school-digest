@@ -45,3 +45,17 @@ export const EVENT_TYPE_BG: Record<CalendarEvent['event_type'], string> = {
   Sport:     'bg-sky-50',
   Community: 'bg-purple-50',
 }
+
+export interface WeatherForecast {
+  temp: number
+  high: number
+  low: number
+  description: string
+  icon: string
+}
+
+export interface WeatherData {
+  today: WeatherForecast
+  tomorrow: WeatherForecast
+  clothingTip: string
+}

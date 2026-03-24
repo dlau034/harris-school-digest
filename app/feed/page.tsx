@@ -36,6 +36,11 @@ function FeedPageInner() {
             requestAnimationFrame(() => setDetailOpen(true))
           }
         }
+
+        const tagParam = searchParams.get('tag')
+        if (tagParam) {
+          setActiveTag(tagParam)
+        }
       })
   }, [searchParams])
 
