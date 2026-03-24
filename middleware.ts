@@ -15,7 +15,12 @@ export function middleware(req: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/logo') ||
-    pathname.startsWith('/icons')
+    pathname.startsWith('/icons') ||
+    pathname === '/manifest.json' ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.webp')
   ) {
     return NextResponse.next()
   }
