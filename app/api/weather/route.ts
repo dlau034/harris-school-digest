@@ -28,6 +28,18 @@ Tomorrow: ${tomorrowTemp}°C, ${tomorrowDesc}
 
 Focus on specific items e.g. coat, umbrella, wellies, sunscreen, layers. Example: "Pack a waterproof jacket and wellies tomorrow — rain is expected." Reply with the one sentence only.`
 
+  // Rule-based fallback in case Gemini fails
+  function fallbackTip(temp: number, desc: string): string {
+    const d = desc.toLowerCase()
+    if (d.includes('rain') || d.includes('drizzle')) return `Pack a waterproof jacket and wellies for tomorrow — ${desc} expected.`
+    if (d.includes('snow')) return 'Wrap up warm with a heavy coat, hat and gloves tomorrow — snow is forecast.'
+    if (d.includes('thunder') || d.includes('storm')) return 'Keep them indoors at lunch if possible — storms forecast tomorrow.'
+    if (temp <= 4) return 'It will be very cold tomorrow — heavy coat, hat, scarf and gloves are a must.'
+    if (temp <= 10) return 'It\'s chilly tomorrow — a warm coat and layers will keep them comfortable.'
+    if (temp >= 22) return 'It\'ll be warm tomorrow — light layers and a hat for the playground. Consider sunscreen.'
+    return `Mild weather tomorrow at ${temp}°C — a light jacket should do.`
+  }
+
   try {
     const res = await fetch(GENERATE_URL, {
       method: 'POST',
@@ -38,9 +50,15 @@ Focus on specific items e.g. coat, umbrella, wellies, sunscreen, layers. Example
       }),
     })
     const json = await res.json()
-    return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
-  } catch {
-    return ''
+    if (!res.ok) {
+      console.error('[/api/weather] Gemini error:', JSON.stringify(json))
+      return fallbackTip(tomorrowTemp, tomorrowDesc)
+    }
+    const tip = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    return tip || fallbackTip(tomorrowTemp, tomorrowDesc)
+  } catch (err) {
+    console.error('[/api/weather] Gemini fetch failed:', err)
+    return fallbackTip(tomorrowTemp, tomorrowDesc)
   }
 }
 
