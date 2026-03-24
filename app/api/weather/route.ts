@@ -22,12 +22,10 @@ function getWeatherEmoji(weatherId: number): string {
 }
 
 async function getClothingTip(todayDesc: string, todayTemp: number, tomorrowDesc: string, tomorrowTemp: number): Promise<string> {
-  const prompt = `You are a helpful school parent assistant. Based on this weather forecast for Beckenham, UK, give a single friendly sentence clothing recommendation for a primary school child.
-
+  const prompt = `Give a single plain-text sentence (no markdown, no bold, no asterisks) clothing recommendation for a primary school child in Beckenham UK based on this forecast:
 Today: ${todayTemp}°C, ${todayDesc}
 Tomorrow: ${tomorrowTemp}°C, ${tomorrowDesc}
-
-Keep it practical and brief — one sentence covering both today and tomorrow. Example style: "Warm layers today; pack a waterproof and wellies for tomorrow's rain!"`
+Reply with one sentence only, no formatting. Example: Warm layers today and pack a waterproof jacket for tomorrow's rain!`
 
   try {
     const res = await fetch(GENERATE_URL, {
@@ -35,7 +33,7 @@ Keep it practical and brief — one sentence covering both today and tomorrow. E
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 80, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: 80, temperature: 0.5 },
       }),
     })
     const json = await res.json()

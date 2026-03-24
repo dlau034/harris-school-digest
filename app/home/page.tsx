@@ -362,34 +362,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ── TRENDING AT SCHOOL ──────────────────────────────────────────── */}
-        {(loading || trendingTags.length > 0) && (
-          <section>
-            <div className="mb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-[#6B7280]">Trending at school</h2>
-              <p className="text-xs text-[#9CA3AF] mt-0.5">Most mentioned across emails &amp; website</p>
-            </div>
-            {loading ? (
-              <div className="flex gap-3 overflow-hidden">
-                {[1,2,3].map(i => <Skeleton key={i} className="h-32 w-48 flex-shrink-0 bg-gray-200 rounded-xl" />)}
-              </div>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2 sm:overflow-visible sm:grid sm:grid-cols-3 lg:grid-cols-4 snap-x snap-mandatory sm:snap-none">
-                {trendingTags.map(({ tag, summary, emailId }) => (
-                  <button
-                    key={tag}
-                    onClick={() => router.push(`/feed?tag=${encodeURIComponent(tag)}`)}
-                    className="min-w-[200px] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink text-left bg-white rounded-xl border border-[#E5E7EB] p-4 hover:shadow-md hover:border-[#D00A2C]/30 transition-all"
-                  >
-                    <div className="text-2xl mb-2">{getTagEmoji(tag)}</div>
-                    <p className="text-sm font-semibold text-[#111827] line-clamp-1">{tag}</p>
-                    <p className="text-xs text-[#6B7280] mt-1 line-clamp-3">{summary}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
 
         {/* ── COMING UP ───────────────────────────────────────────────────── */}
         <section>
