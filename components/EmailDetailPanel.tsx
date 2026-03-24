@@ -81,7 +81,17 @@ export default function EmailDetailPanel({ email, open, onClose }: Props) {
           {/* Summary */}
           <section>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#6B7280] mb-2">Summary</p>
-            <p className="text-sm text-[#111827] leading-relaxed">{email.summary}</p>
+            <ul className="space-y-1.5">
+              {email.summary
+                .split(/(?<=[.!?])\s+/)
+                .filter(s => s.trim().length > 0)
+                .map((sentence, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-[#111827] leading-relaxed">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#D00A2C] flex-shrink-0" />
+                    {sentence.trim()}
+                  </li>
+                ))}
+            </ul>
           </section>
 
           {/* Events from this email */}

@@ -10,6 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const tabs = [
     { href: '/feed',     label: 'Email Feed' },
     { href: '/calendar', label: 'Calendar' },
+    { href: '/ask',      label: 'Ask' },
   ]
 
   return (
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 alt="Harris"
                 className="h-8 object-contain"
               />
-              <span className="text-base font-bold tracking-tight">School Digest</span>
+              <span className="hidden sm:inline text-base font-bold tracking-tight">School Digest</span>
             </div>
             <nav className="flex gap-1 h-full items-stretch">
               {tabs.map(tab => {

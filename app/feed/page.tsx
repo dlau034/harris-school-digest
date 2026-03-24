@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { EmailSummary } from '@/lib/types'
 import EmailCard from '@/components/EmailCard'
 import EmailDetailPanel from '@/components/EmailDetailPanel'
 
 export default function FeedPage() {
+  const searchParams = useSearchParams()
   const [emails, setEmails] = useState<EmailSummary[]>([])
   const [filtered, setFiltered] = useState<EmailSummary[]>([])
   const [selected, setSelected] = useState<EmailSummary | null>(null)
@@ -21,11 +23,21 @@ export default function FeedPage() {
       .select('*')
       .order('date_received', { ascending: false })
       .then(({ data }) => {
-        setEmails(data || [])
-        setFiltered(data || [])
+        const list = data || []
+        setEmails(list)
+        setFiltered(list)
         setLoading(false)
+
+        const emailId = searchParams.get('email')
+        if (emailId) {
+          const target = list.find(e => e.id === emailId)
+          if (target) {
+            setSelected(target)
+            requestAnimationFrame(() => setDetailOpen(true))
+          }
+        }
       })
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     let result = emails

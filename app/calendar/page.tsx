@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CalendarEvent, EmailSummary } from '@/lib/types'
 import CalendarEventItem from '@/components/CalendarEventItem'
@@ -20,10 +21,10 @@ const YEAR_GROUPS = [
 ]
 
 export default function CalendarPage() {
+  const router = useRouter()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [selected, setSelected] = useState<CalendarEvent | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [selectedEmail, setSelectedEmail] = useState<EmailSummary | null>(null)
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming')
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [yearFilter, setYearFilter] = useState<string | null>(null)
@@ -173,7 +174,7 @@ export default function CalendarPage() {
           event={selected}
           open={detailOpen}
           onClose={closeDetail}
-          onSelectEmail={setSelectedEmail}
+          onSelectEmail={(email: EmailSummary) => router.push(`/feed?email=${email.id}`)}
         />
       )}
     </div>
