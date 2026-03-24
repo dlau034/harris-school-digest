@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { EmailSummary } from '@/lib/types'
 import EmailCard from '@/components/EmailCard'
 import EmailDetailPanel from '@/components/EmailDetailPanel'
 
-export default function FeedPage() {
+function FeedPageInner() {
   const searchParams = useSearchParams()
   const [emails, setEmails] = useState<EmailSummary[]>([])
   const [filtered, setFiltered] = useState<EmailSummary[]>([])
@@ -131,5 +131,13 @@ export default function FeedPage() {
         <EmailDetailPanel email={selected} open={detailOpen} onClose={closeDetail} />
       )}
     </div>
+  )
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense>
+      <FeedPageInner />
+    </Suspense>
   )
 }
