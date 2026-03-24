@@ -21,7 +21,7 @@ export default function CalendarEventItem({ event, onClick }: Props) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-lg border-l-4 px-4 py-3 hover:shadow-md transition-all duration-150 ${EVENT_TYPE_BG[event.event_type]}`}
+      className="w-full text-left rounded-lg border border-[#E5E7EB] border-l-4 px-4 py-3 bg-white hover:shadow-md transition-all duration-150"
       style={{ borderLeftColor: EVENT_TYPE_COLOURS[event.event_type] }}
     >
       <div className="flex items-start justify-between gap-3">

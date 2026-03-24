@@ -13,10 +13,12 @@ A Next.js dashboard for Harris school parents to browse AI-summarised school ema
 ## Project Structure
 ```
 app/
-  layout.tsx        # Root layout with header nav (Email Feed / Calendar tabs)
+  layout.tsx        # Root layout with header nav (Email Feed / Calendar / Ask tabs)
   page.tsx          # Redirects / → /feed
   feed/page.tsx     # Email feed with search + tag filters + detail panel
   calendar/page.tsx # Calendar events with date, type, year-group filters
+  ask/page.tsx      # RAG-powered Ask page — natural language Q&A
+  api/ask/route.ts  # Server-side API: embeds query → vector search → Gemini answer
 components/
   EmailCard.tsx         # Card component for email list
   EmailDetailPanel.tsx  # Slide-in panel for full email detail
@@ -25,6 +27,9 @@ components/
 lib/
   supabase.ts   # Supabase client (uses NEXT_PUBLIC_ env vars)
   types.ts      # Shared TypeScript types (EmailSummary, CalendarEvent)
+apps-script/
+  Code.gs           # Email ingestion pipeline (reference copy — do not edit here)
+  RagIngestion.gs   # RAG ingestion: website scraper, email embedder, PDF embedder
 ```
 
 ## Environment Variables
@@ -32,11 +37,21 @@ Required in `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+GEMINI_API_KEY=          # Server-side only — used by /api/ask for embeddings + generation
+SUPABASE_SERVICE_KEY=    # Server-side only — bypasses RLS for vector search
 ```
+Also add `GEMINI_API_KEY` and `SUPABASE_SERVICE_KEY` to Vercel environment variables.
 
 ## Supabase Tables
-- `email_summaries` — AI-summarised emails with `subject`, `sender`, `date_received`, `summary`, `tags[]`, `has_attachment`, `body`
+- `email_summaries` — AI-summarised emails with `subject`, `sender`, `date_received`, `summary`, `tags[]`, `has_attachment`, `pdf_drive_url`
 - `calendar_events` — Extracted events with `title`, `event_date`, `event_type`, `description`, `action_text`, `source_email_id`
+- `rag_documents` — Vector embeddings for RAG with `content`, `embedding` (vector 3072), `source_type`, `source_label`, `source_url`, `source_email_id`
+
+### RAG / Vector Search
+- Embedding model: `gemini-embedding-001` (3072 dimensions) via Google AI Studio free tier
+- Generation model: `gemini-2.5-flash`
+- Supabase function: `match_documents(query_embedding, match_threshold, match_count)` — cosine similarity search
+- No vector index (sequential scan) — sufficient for small dataset; HNSW/IVFFlat both cap at 2000 dims
 
 ## Dev Commands
 ```bash
@@ -92,5 +107,17 @@ The ingestion pipeline runs entirely in Google Apps Script — **do not edit thi
 
 ## School Website
 - **URL:** https://www.harrisprimarybeckenham.org.uk/
-- **Key sections for RAG:** Parent Hub (term dates, newsletters, clubs, wrap-around care), About (admissions, uniform, Ofsted), Teaching & Learning (curriculum, year groups)
 - Website is publicly accessible — no login required for scraping
+
+### RAG Ingestion Scripts (`apps-script/RagIngestion.gs`)
+Key functions — run manually from the Apps Script editor:
+
+| Function | When to run |
+|---|---|
+| `scrapeAndEmbedWebsite()` | One-off + whenever site content changes. Deletes all `source_type='website'` rows and re-scrapes 62 pages. Use `Utilities.sleep(2000)` between pages to avoid rate limits. |
+| `backfillEmailEmbeddings()` | One-off after deploying RAG. Embeds all existing emails not yet in `rag_documents`. Skips already-embedded emails. |
+| `ingestManualPdfs()` | After dropping new PDFs into the **"School Digest Manual PDFs"** Google Drive folder. Only processes files not yet marked `rag-processed` in their Drive description. |
+| `embedEmailContent(...)` | Called automatically by `processMessage()` for each new email going forward. |
+
+### Embedding model note
+The ingestion scripts use `gemini-embedding-001` (3072 dims). The `/api/ask` route must use the same model. Do **not** switch back to `text-embedding-004` (768 dims) — the Supabase column is `vector(3072)`.
