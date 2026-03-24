@@ -33,7 +33,7 @@ Reply with one sentence only, no formatting. Example: Warm layers today and pack
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 80, temperature: 0.5 },
+        generationConfig: { maxOutputTokens: 200, temperature: 0.5 },
       }),
     })
     const json = await res.json()
