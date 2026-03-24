@@ -18,9 +18,10 @@ function getSchoolStatus(now: Date, events: Pick<CalendarEvent, 'id' | 'event_da
   const timeVal = hours * 60 + minutes
   const day = now.getDay()
 
-  // Check for term break — look for Closure events that span today
+  // Check for term break — only if today IS the closure date
   const termBreak = events.find(e => {
     if (e.event_type !== 'Closure') return false
+    if (e.event_date !== todayStr) return false
     const t = e.title.toLowerCase()
     return t.includes('term') || t.includes('break') || t.includes('holiday') || t.includes('half')
   })
