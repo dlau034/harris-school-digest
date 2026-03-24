@@ -22,10 +22,9 @@ function getWeatherEmoji(weatherId: number): string {
 }
 
 async function getClothingTip(todayDesc: string, todayTemp: number, tomorrowDesc: string, tomorrowTemp: number): Promise<string> {
-  const prompt = `Give a single plain-text sentence (no markdown, no bold, no asterisks) clothing recommendation for a primary school child in Beckenham UK based on this forecast:
-Today: ${todayTemp}°C, ${todayDesc}
-Tomorrow: ${tomorrowTemp}°C, ${tomorrowDesc}
-Reply with one sentence only, no formatting. Example: Warm layers today and pack a waterproof jacket for tomorrow's rain!`
+  const prompt = `Complete this sentence in plain text with no markdown or asterisks, giving a clothing tip for a UK primary school child:
+"Today is ${todayTemp}°C and ${todayDesc}, tomorrow is ${tomorrowTemp}°C and ${tomorrowDesc}, so ___."
+Reply with only the completed sentence.`
 
   try {
     const res = await fetch(GENERATE_URL, {
@@ -33,7 +32,7 @@ Reply with one sentence only, no formatting. Example: Warm layers today and pack
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 200, temperature: 0.5 },
+        generationConfig: { maxOutputTokens: 500, temperature: 0.4 },
       }),
     })
     const json = await res.json()
@@ -98,7 +97,7 @@ export async function GET() {
         clothingTip,
       },
       {
-        headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate' },
+        headers: { 'Cache-Control': 's-maxage=600, stale-while-revalidate=300' },
       }
     )
   } catch (err) {
