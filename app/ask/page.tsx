@@ -97,14 +97,26 @@ export default function AskPage() {
 
         {/* Search form */}
         <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            ref={inputRef}
-            value={question}
-            onChange={e => setQuestion(e.target.value)}
-            placeholder="Ask a question…"
-            className="flex-1 border border-[#E5E7EB] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#D00A2C] focus:border-transparent"
-            disabled={loading}
-          />
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              placeholder="Ask a question…"
+              className="w-full border border-[#E5E7EB] rounded-lg px-4 py-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-[#D00A2C] focus:border-transparent"
+              disabled={loading}
+            />
+            {question && !loading && (
+              <button
+                type="button"
+                onClick={() => { setQuestion(''); setResult(null); setError(null); inputRef.current?.focus() }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#374151] transition-colors"
+                aria-label="Clear"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <button
             type="submit"
             disabled={!question.trim() || loading}
