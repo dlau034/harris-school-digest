@@ -22,9 +22,14 @@ function getWeatherEmoji(weatherId: number): string {
 }
 
 async function getClothingTip(todayDesc: string, todayTemp: number, tomorrowDesc: string, tomorrowTemp: number): Promise<string> {
-  const prompt = `Complete this sentence in plain text with no markdown or asterisks, giving a clothing tip for a UK primary school child:
-"Today is ${todayTemp}°C and ${todayDesc}, tomorrow is ${tomorrowTemp}°C and ${tomorrowDesc}, so ___."
-Reply with only the completed sentence.`
+  const prompt = `You are a helpful UK school parent assistant. Write a friendly, practical clothing tip for a primary school child heading to school today and tomorrow. No markdown, no bullet points, no asterisks — plain text only. Two short sentences max.
+
+Today: ${todayTemp}°C, ${todayDesc}
+Tomorrow: ${tomorrowTemp}°C, ${tomorrowDesc}
+
+Focus on what to wear or pack, e.g. coat, umbrella, wellies, sunscreen, layers. Be specific to the weather. Example good output: "A warm coat and scarf will keep them cosy today. Pack a waterproof jacket and wellies for tomorrow's rain."
+
+Reply with the tip only — no intro, no label, no emoji.`
 
   try {
     const res = await fetch(GENERATE_URL, {
