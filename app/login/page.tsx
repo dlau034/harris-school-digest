@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [shake, setShake] = useState(false)
@@ -23,8 +21,7 @@ export default function LoginPage() {
     })
 
     if (res.ok) {
-      router.push('/home')
-      router.refresh()
+      window.location.href = '/home'
     } else {
       setLoading(false)
       setError(true)
