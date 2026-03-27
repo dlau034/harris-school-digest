@@ -89,7 +89,7 @@ export default function CalendarEventPanel({ event, open, onClose, onSelectEmail
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 pb-20 sm:pb-5">
           {/* Action */}
           {event.action_text && (
             <section>

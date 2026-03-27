@@ -77,7 +77,7 @@ export default function EmailDetailPanel({ email, open, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 pb-20 sm:pb-5">
           {/* Summary */}
           <section>
             <p className="text-xs font-semibold uppercase tracking-widest text-[#6B7280] mb-2">Summary</p>
