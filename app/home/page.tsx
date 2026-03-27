@@ -11,15 +11,19 @@ import CalendarEventItem from '@/components/CalendarEventItem'
 
 const CLUB_DAYS = [1, 3, 4, 5] // Mon, Wed, Thu, Fri (0=Sun, 6=Sat)
 
-// Hard-coded 2025-26 term breaks. start = last school day (all have 1:30pm finish).
-// School status switches to "break" mode after 1:30pm on start date.
+// Hard-coded 2025-26 term breaks.
+// - inset: true  → no school all day (skip the 1:30pm carve-out)
+// - inset: false → last school day has 1:30pm finish; break triggers after that
 const TERM_BREAKS = [
-  { start: '2025-10-17', end: '2025-11-02', label: 'Half term',       back: 'Monday 3rd November' },
-  { start: '2025-12-19', end: '2026-01-04', label: 'Christmas',       back: 'Monday 5th January' },
-  { start: '2026-02-12', end: '2026-02-22', label: 'Half term',       back: 'Monday 23rd February' },
-  { start: '2026-03-27', end: '2026-04-12', label: 'Easter holidays', back: 'Monday 13th April' },
-  { start: '2026-05-22', end: '2026-05-31', label: 'Half term',       back: 'Monday 1st June' },
-  { start: '2026-07-17', end: '2026-09-06', label: 'Summer holidays', back: 'Autumn Term 2026' },
+  { start: '2025-09-01', end: '2025-09-02', label: 'INSET days',      back: 'Wednesday 3rd September', inset: true },
+  { start: '2025-10-10', end: '2025-10-10', label: 'INSET day',       back: 'Monday 13th October',    inset: true },
+  { start: '2025-10-17', end: '2025-11-02', label: 'Half term',       back: 'Monday 3rd November',    inset: false },
+  { start: '2025-12-19', end: '2026-01-04', label: 'Christmas',       back: 'Monday 5th January',     inset: false },
+  { start: '2026-02-12', end: '2026-02-22', label: 'Half term',       back: 'Monday 23rd February',   inset: false },
+  { start: '2026-03-27', end: '2026-04-12', label: 'Easter holidays', back: 'Monday 13th April',      inset: false },
+  { start: '2026-05-04', end: '2026-05-04', label: 'Bank holiday',    back: 'Tuesday 5th May',        inset: true },
+  { start: '2026-05-22', end: '2026-05-31', label: 'Half term',       back: 'Monday 1st June',        inset: false },
+  { start: '2026-07-17', end: '2026-09-06', label: 'Summer holidays', back: 'Autumn Term 2026',       inset: false },
 ]
 
 function getSchoolStatus(now: Date, events: Pick<CalendarEvent, 'id' | 'event_date' | 'title' | 'event_type' | 'description'>[]): { emoji: string; message: string; colour: string } {
@@ -32,10 +36,11 @@ function getSchoolStatus(now: Date, events: Pick<CalendarEvent, 'id' | 'event_da
   // Check term break — hard-coded so it works even without DB events
   const activeBreak = TERM_BREAKS.find(b => todayStr >= b.start && todayStr <= b.end)
   if (activeBreak) {
-    // On the start date (last day of term, 1:30pm finish) — show break only after 1:30pm
-    const schoolStillOn = todayStr === activeBreak.start && timeVal < 13 * 60 + 30
+    // For normal last-days-of-term (1:30pm finish), let morning school logic run first
+    const schoolStillOn = !activeBreak.inset && todayStr === activeBreak.start && timeVal < 13 * 60 + 30
     if (!schoolStillOn) {
-      return { emoji: '🏖️', message: `${activeBreak.label} — back ${activeBreak.back}`, colour: 'bg-red-900/40' }
+      const emoji = activeBreak.label.includes('INSET') ? '📋' : activeBreak.label.includes('Bank') ? '🏦' : '🏖️'
+      return { emoji, message: `${activeBreak.label} — back ${activeBreak.back}`, colour: 'bg-red-900/40' }
     }
   }
 
