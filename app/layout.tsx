@@ -5,18 +5,19 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { config, library } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css'
-import { faHouse, faEnvelope, faCalendarDays, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
+import { faHouse, faEnvelope, faCalendarDays, faWandMagicSparkles, faBookOpen } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 // Prevent Font Awesome from auto-adding CSS (we import it manually above)
 config.autoAddCss = false
-library.add(faHouse, faEnvelope, faCalendarDays, faWandMagicSparkles)
+library.add(faHouse, faEnvelope, faCalendarDays, faWandMagicSparkles, faBookOpen)
 
 const NAV_TABS = [
-  { href: '/home',     label: 'Home',     icon: faHouse },
-  { href: '/feed',     label: 'Emails',   icon: faEnvelope },
-  { href: '/calendar', label: 'Calendar', icon: faCalendarDays },
-  { href: '/ask',      label: 'Ask',      icon: faWandMagicSparkles },
+  { href: '/home',      label: 'Home',     icon: faHouse },
+  { href: '/feed',      label: 'Emails',   icon: faEnvelope },
+  { href: '/calendar',  label: 'Calendar', icon: faCalendarDays },
+  { href: '/ask',       label: 'Ask',      icon: faWandMagicSparkles },
+  { href: '/learning',  label: 'Learning', icon: faBookOpen },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
