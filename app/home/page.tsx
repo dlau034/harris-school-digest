@@ -14,6 +14,8 @@ const CLUB_DAYS = [1, 3, 4, 5] // Mon, Wed, Thu, Fri (0=Sun, 6=Sat)
 // Hard-coded 2025-26 term breaks.
 // - inset: true  → no school all day (skip the 1:30pm carve-out)
 // - inset: false → last school day has 1:30pm finish; break triggers after that
+const SUMMER_TERM_START = '2026-04-13'
+
 const TERM_BREAKS = [
   { start: '2025-09-01', end: '2025-09-02', label: 'INSET days',      back: 'Wednesday 3rd September', inset: true },
   { start: '2025-10-10', end: '2025-10-10', label: 'INSET day',       back: 'Monday 13th October',    inset: true },
@@ -213,6 +215,12 @@ export default function HomePage() {
 
   const status = getSchoolStatus(now, nearbyEvents)
   const latest3 = emails.slice(0, 3)
+  const todayStr = format(now, 'yyyy-MM-dd')
+  const isSummerTerm = todayStr >= SUMMER_TERM_START
+  const day = now.getDay()
+  const isPeToday = day === 1 || day === 4
+  const isPeTomorrow = day === 0 || day === 3
+  const showPeReminder = isSummerTerm && (isPeToday || isPeTomorrow)
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -290,9 +298,17 @@ export default function HomePage() {
                 </div>
               </div>
               {weather.clothingTip && (
-                <div className="flex items-start gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
-                  <span className="text-base mt-0.5">🧥</span>
+                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/10">
+                  <span className="text-base">🧥</span>
                   <p className="text-sm text-white/80 leading-snug">{weather.clothingTip}</p>
+                </div>
+              )}
+              {showPeReminder && (
+                <div className="flex items-center gap-2 bg-amber-400/20 rounded-xl px-3 py-2.5 border border-amber-400/30 mt-2">
+                  <span className="text-base">👟</span>
+                  <p className="text-sm text-white/90 leading-snug">
+                    {isPeTomorrow ? "Don't forget — PE kit tomorrow for Year 1!" : "Don't forget — PE kit today for Year 1!"}
+                  </p>
                 </div>
               )}
             </div>
