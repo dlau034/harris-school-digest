@@ -42,6 +42,14 @@ const CATEGORIES: Category[] = [
 
 const STORAGE_KEY = 'harris-phonics-done'
 
+const ANIMAL_EMOJIS = [
+  '🦁','🐯','🐻','🐨','🐼','🐸','🐵','🦊','🐺','🦝',
+  '🐴','🦄','🦓','🦒','🐘','🦛','🦏','🐪','🦘','🦙',
+  '🐇','🦔','🐿️','🦫','🦡','🦦','🦥','🐁','🐹','🐰',
+  '🐢','🐍','🦎','🐊','🦖','🦕','🐙','🦑','🦐','🦞',
+  '🦀','🐡','🐠','🐟','🐬','🐳','🦈','🦭','🐋','🐆',
+]
+
 export default function LearningPage() {
   const [done, setDone] = useState<Set<string>>(new Set())
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id)
@@ -165,9 +173,10 @@ export default function LearningPage() {
 
           {/* Resource rows */}
           <div className="space-y-2">
-            {activeCat.resources.map(resource => {
+            {activeCat.resources.map((resource, idx) => {
               const isDone = mounted && done.has(resource.url)
               const { live } = resource
+              const rewardEmoji = ANIMAL_EMOJIS[idx % ANIMAL_EMOJIS.length]
 
               return (
                 <div
@@ -180,16 +189,12 @@ export default function LearningPage() {
                         : 'border-[#E5E7EB] hover:border-[#D00A2C]/20 hover:shadow-sm'
                   }`}
                 >
-                  {/* Status icon */}
-                  <div className="flex-shrink-0 w-5 flex items-center justify-center">
+                  {/* Status icon / reward */}
+                  <div className="flex-shrink-0 w-6 flex items-center justify-center">
                     {!live ? (
                       <span className="text-sm text-[#9CA3AF]">✕</span>
                     ) : isDone ? (
-                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
+                      <span className="text-2xl" title="Great work!">{rewardEmoji}</span>
                     ) : (
                       <div className="w-5 h-5 rounded-full border-2 border-[#D1D5DB]" />
                     )}
