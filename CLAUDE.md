@@ -45,7 +45,7 @@ Also add `GEMINI_API_KEY` and `SUPABASE_SERVICE_KEY` to Vercel environment varia
 ## Supabase Tables
 - `email_summaries` — AI-summarised emails with `subject`, `sender`, `date_received`, `summary`, `tags[]`, `has_attachment`, `pdf_drive_url`
 - `calendar_events` — Extracted events with `title`, `event_date`, `event_type`, `description`, `action_text`, `source_email_id`
-- `rag_documents` — Vector embeddings for RAG with `content`, `embedding` (vector 3072), `source_type`, `source_label`, `source_url`, `source_email_id`
+- `rag_documents` — Vector embeddings for RAG with `content`, `embedding` (vector 3072), `source_type`, `source_label`, `source_url`, `source_email_id`. **RLS enabled** — no public policy; only accessible via service role key.
 
 ### RAG / Vector Search
 - Embedding model: `gemini-embedding-001` (3072 dimensions) via Google AI Studio free tier
