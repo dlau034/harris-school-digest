@@ -1,6 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { ANIMALS_BY_TYPE } from '@/lib/animals'
+
+const ANIMALS = ANIMALS_BY_TYPE.land
 
 interface Resource {
   date: string
@@ -42,18 +46,69 @@ const CATEGORIES: Category[] = [
 
 const STORAGE_KEY = 'harris-phonics-done'
 
-const ANIMAL_EMOJIS = [
-  '🦁','🐯','🐻','🐨','🐼','🐸','🐵','🦊','🐺','🦝',
-  '🐴','🦄','🦓','🦒','🐘','🦛','🦏','🐪','🦘','🦙',
-  '🐇','🦔','🐿️','🦫','🦡','🦦','🦥','🐁','🐹','🐰',
-  '🐢','🐍','🦎','🐊','🦖','🦕','🐙','🦑','🦐','🦞',
-  '🦀','🐡','🐠','🐟','🐬','🐳','🦈','🦭','🐋','🐆',
-]
+// Assign an animal to each resource by its global index across all categories
+const buildResourceAnimalMap = (): Record<string, number> => {
+  const map: Record<string, number> = {}
+  let idx = 0
+  for (const cat of CATEGORIES) {
+    for (const r of cat.resources) {
+      if (r.live) {
+        map[r.url] = idx % ANIMALS.length
+        idx++
+      }
+    }
+  }
+  return map
+}
+
+const RESOURCE_ANIMAL_MAP = buildResourceAnimalMap()
+
+interface RevealState {
+  animalIdx: number
+  phase: 'shake' | 'crack' | 'reveal'
+}
+
+// Simple audio beep using Web Audio API
+function playSound(type: 'crack' | 'reveal') {
+  try {
+    const ctx = new AudioContext()
+    if (type === 'crack') {
+      // Short percussive crack
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate)
+      const data = buf.getChannelData(0)
+      for (let i = 0; i < data.length; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04))
+      }
+      const src = ctx.createBufferSource()
+      src.buffer = buf
+      src.connect(ctx.destination)
+      src.start()
+    } else {
+      // Cheerful rising arp
+      const notes = [523, 659, 784, 1047]
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.08)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.15)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(ctx.currentTime + i * 0.08)
+        osc.stop(ctx.currentTime + i * 0.08 + 0.2)
+      })
+    }
+  } catch {}
+}
 
 export default function LearningPage() {
+  const router = useRouter()
   const [done, setDone] = useState<Set<string>>(new Set())
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id)
   const [mounted, setMounted] = useState(false)
+  const [reveal, setReveal] = useState<RevealState | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -61,9 +116,11 @@ export default function LearningPage() {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) setDone(new Set(JSON.parse(stored)))
     } catch {}
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [])
 
   const toggle = (url: string) => {
+    const wasAlreadyDone = done.has(url)
     setDone(prev => {
       const next = new Set(prev)
       if (next.has(url)) next.delete(url)
@@ -71,6 +128,26 @@ export default function LearningPage() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...next])) } catch {}
       return next
     })
+
+    // Only trigger reveal when marking as done (not un-doing)
+    if (!wasAlreadyDone) {
+      const animalIdx = RESOURCE_ANIMAL_MAP[url] ?? 0
+      setReveal({ animalIdx, phase: 'shake' })
+      playSound('crack')
+
+      timerRef.current = setTimeout(() => {
+        setReveal(r => r ? { ...r, phase: 'crack' } : null)
+        timerRef.current = setTimeout(() => {
+          setReveal(r => r ? { ...r, phase: 'reveal' } : null)
+          playSound('reveal')
+        }, 400)
+      }, 300)
+    }
+  }
+
+  const closeReveal = () => {
+    setReveal(null)
+    if (timerRef.current) clearTimeout(timerRef.current)
   }
 
   const activeCat = CATEGORIES.find(c => c.id === activeCategory) ?? CATEGORIES[0]
@@ -78,21 +155,96 @@ export default function LearningPage() {
   const doneCount = mounted ? liveResources.filter(r => done.has(r.url)).length : 0
   const progress = liveResources.length > 0 ? Math.round((doneCount / liveResources.length) * 100) : 0
 
+  const totalDone = mounted ? CATEGORIES.flatMap(c => c.resources.filter(r => r.live)).filter(r => done.has(r.url)).length : 0
+
+  const revealAnimal = reveal !== null ? ANIMALS[reveal.animalIdx] : null
+
   return (
     <div className="h-full overflow-y-auto bg-[#F9FAFB]">
 
+      {/* Egg crack overlay */}
+      {reveal && revealAnimal && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80"
+          onClick={closeReveal}
+        >
+          <button
+            onClick={closeReveal}
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-base font-bold px-5 py-3 border-2 border-white/30 hover:border-white/60 rounded-xl transition-colors"
+          >
+            ✕ Close
+          </button>
+
+          <div
+            className="flex flex-col items-center gap-6 px-6"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Egg / animal display */}
+            <div
+              className={`text-8xl select-none transition-all duration-300 ${
+                reveal.phase === 'shake'
+                  ? 'animate-[eggShake_0.3s_ease-in-out]'
+                  : reveal.phase === 'crack'
+                  ? 'opacity-60 scale-90'
+                  : 'animate-[animalBounce_0.5s_ease-out]'
+              }`}
+              style={{
+                filter: reveal.phase === 'crack' ? 'blur(1px)' : 'none',
+              }}
+            >
+              {reveal.phase === 'reveal' ? revealAnimal.emoji : '🥚'}
+            </div>
+
+            {/* Fun fact card — only shown after reveal */}
+            {reveal.phase === 'reveal' && (
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-6 py-5 max-w-xs text-center animate-[fadeUp_0.4s_ease-out]">
+                <p className="text-white font-bold text-lg mb-1">{revealAnimal.name}!</p>
+                <p className="text-white/80 text-sm leading-relaxed">{revealAnimal.funFact}</p>
+              </div>
+            )}
+
+            {reveal.phase === 'reveal' && (
+              <button
+                onClick={() => { closeReveal(); router.push('/zoo') }}
+                className="mt-1 text-sm font-bold text-[#1A1A1A] bg-[#fbbf24] hover:bg-yellow-300 px-6 py-3 rounded-xl transition-colors animate-[fadeUp_0.5s_ease-out]"
+              >
+                View in Zoo →
+              </button>
+            )}
+
+            {reveal.phase !== 'reveal' && (
+              <p className="text-white/40 text-sm">Hatching...</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="bg-[#1A1A1A] text-white px-5 py-5">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-xl font-bold">📚 Learning</h1>
-          <p className="text-sm text-white/60 mt-0.5">Phonics videos for Year 1</p>
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">📚 Learning</h1>
+            <p className="text-sm text-white/60 mt-0.5">Phonics videos for Year 1</p>
+          </div>
+          <button
+            onClick={() => router.push('/zoo')}
+            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-semibold px-3 py-2 rounded-xl transition-colors"
+          >
+            <span>🦁</span>
+            <span>View Zoo</span>
+            {totalDone > 0 && (
+              <span className="bg-[#D00A2C] text-white text-xs font-bold px-1.5 py-0.5 rounded-full ml-0.5">
+                {totalDone}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Main layout: sidebar + content on desktop, stacked on mobile */}
+      {/* Main layout */}
       <div className="max-w-5xl mx-auto sm:grid sm:grid-cols-[220px_1fr] sm:gap-6 sm:px-6 sm:py-6">
 
-        {/* ── LEFT SIDEBAR — desktop only ─────────────────────────────── */}
+        {/* Sidebar */}
         <aside className="hidden sm:block">
           <div className="sticky top-4">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#6B7280] mb-3 px-1">
@@ -124,10 +276,10 @@ export default function LearningPage() {
           </div>
         </aside>
 
-        {/* ── RIGHT: resource list ─────────────────────────────────────── */}
+        {/* Resource list */}
         <main className="px-4 py-4 sm:px-0 sm:py-0 pb-24 sm:pb-6">
 
-          {/* Mobile: horizontal pill category selector */}
+          {/* Mobile category pills */}
           <div className="sm:hidden mb-4 flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             {CATEGORIES.map(cat => {
               const live = cat.resources.filter(r => r.live)
@@ -149,7 +301,7 @@ export default function LearningPage() {
             })}
           </div>
 
-          {/* Category heading + progress */}
+          {/* Heading + progress */}
           <div className="mb-5">
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-bold text-[#111827]">{activeCat.label}</h2>
@@ -171,12 +323,13 @@ export default function LearningPage() {
             </div>
           </div>
 
-          {/* Resource rows */}
+          {/* Rows */}
           <div className="space-y-2">
-            {activeCat.resources.map((resource, idx) => {
+            {activeCat.resources.map((resource) => {
               const isDone = mounted && done.has(resource.url)
               const { live } = resource
-              const rewardEmoji = ANIMAL_EMOJIS[idx % ANIMAL_EMOJIS.length]
+              const animalIdx = RESOURCE_ANIMAL_MAP[resource.url]
+              const animal = animalIdx !== undefined ? ANIMALS[animalIdx] : null
 
               return (
                 <div
@@ -189,15 +342,15 @@ export default function LearningPage() {
                         : 'border-[#E5E7EB] hover:border-[#D00A2C]/20 hover:shadow-sm'
                   }`}
                 >
-                  {/* Status icon / reward */}
-                  <div className="flex-shrink-0 w-6 flex items-center justify-center">
+                  {/* Status icon */}
+                  <div className="flex-shrink-0 w-8 flex items-center justify-center">
                     {!live ? (
                       <span className="text-sm text-[#9CA3AF]">✕</span>
-                    ) : isDone ? (
-                      <span className="text-2xl" title="Great work!">{rewardEmoji}</span>
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-[#D1D5DB]" />
-                    )}
+                    ) : isDone && animal ? (
+                      <span className="text-2xl" title={animal.name}>{animal.emoji}</span>
+                    ) : live ? (
+                      <span className="text-2xl">🥚</span>
+                    ) : null}
                   </div>
 
                   {/* Date + title */}
@@ -215,7 +368,7 @@ export default function LearningPage() {
                     )}
                   </div>
 
-                  {/* Actions — only for live resources */}
+                  {/* Actions */}
                   {live && (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <a
@@ -249,6 +402,26 @@ export default function LearningPage() {
           </div>
         </main>
       </div>
+
+      <style>{`
+        @keyframes eggShake {
+          0%, 100% { transform: rotate(0deg); }
+          20% { transform: rotate(-8deg) scale(1.05); }
+          40% { transform: rotate(8deg) scale(1.05); }
+          60% { transform: rotate(-5deg); }
+          80% { transform: rotate(5deg); }
+        }
+        @keyframes animalBounce {
+          0% { transform: scale(0.5); opacity: 0; }
+          60% { transform: scale(1.2); opacity: 1; }
+          80% { transform: scale(0.95); }
+          100% { transform: scale(1); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   )
 }
