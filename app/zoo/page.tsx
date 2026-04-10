@@ -42,7 +42,7 @@ const EMOJI_SIZE = 5
 
 function initPos(emoji: string, name: string, idx: number): AnimalPos {
   const angle = (idx / 8) * Math.PI * 2 + Math.random() * 0.5
-  const speed = 0.037
+  const speed = 0.046
   const vx = Math.cos(angle) * speed * (0.6 + Math.random() * 0.8)
   const vy = Math.sin(angle) * speed * (0.6 + Math.random() * 0.8)
   return {
@@ -93,8 +93,8 @@ function LandPen({ animals }: { animals: AnimalPos[] }) {
           vy += (Math.random() - 0.5) * 0.025
         }
         const spd = Math.sqrt(vx * vx + vy * vy)
-        if (spd > 0.05)  { vx = (vx / spd) * 0.05; vy = (vy / spd) * 0.05 }
-        if (spd < 0.02)  { vx *= 1.03; vy *= 1.03 }
+        if (spd > 0.08)  { vx = (vx / spd) * 0.08; vy = (vy / spd) * 0.08 }
+        if (spd < 0.025) { vx *= 1.03; vy *= 1.03 }
 
         x += vx * delta
         y += vy * delta
@@ -187,7 +187,7 @@ function LandPen({ animals }: { animals: AnimalPos[] }) {
             style={{
               left: `${a.x}%`,
               top: `${a.y}%`,
-              fontSize: '2.4rem',
+              fontSize: '1.92rem',
               lineHeight: 1,
               transform: `scaleX(${a.facingLeft ? -1 : 1})`,
               zIndex: 5,
