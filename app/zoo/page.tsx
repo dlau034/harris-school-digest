@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { ANIMALS_BY_TYPE } from '@/lib/animals'
 
 const STORAGE_KEY = 'harris-phonics-done'
-
 const LAND_ANIMALS = ANIMALS_BY_TYPE.land
 
 const CATEGORIES_URLS: string[] = [
@@ -22,7 +21,6 @@ const CATEGORIES_URLS: string[] = [
   'https://schools.ruthmiskin.com/resources/vc-pathways/395323/Kq07H40USMqcKOa1',
 ]
 
-// All resources map to land animals only
 const RESOURCE_ANIMAL_MAP: Record<string, number> = {}
 CATEGORIES_URLS.forEach((url, i) => {
   RESOURCE_ANIMAL_MAP[url] = i % LAND_ANIMALS.length
@@ -40,6 +38,7 @@ interface AnimalPos {
 }
 
 const PEN_PADDING = 8
+const EMOJI_SIZE = 5
 
 function initPos(emoji: string, name: string, idx: number): AnimalPos {
   const angle = (idx / 8) * Math.PI * 2 + Math.random() * 0.5
@@ -58,35 +57,47 @@ function initPos(emoji: string, name: string, idx: number): AnimalPos {
   }
 }
 
-function useLandMovement(animals: AnimalPos[]) {
+function LandPen({ animals }: { animals: AnimalPos[] }) {
+  // Direct DOM refs — animation writes to DOM, never triggers React re-renders
+  const domRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const stateRef = useRef<AnimalPos[]>(animals)
-  const [, forceRender] = useState(0)
   const rafRef = useRef<number>(0)
+  const lastTimeRef = useRef<number>(0)
 
+  // Only reset physics state when animal count changes
+  const prevLengthRef = useRef(animals.length)
   useEffect(() => {
-    stateRef.current = animals
+    if (animals.length !== prevLengthRef.current) {
+      stateRef.current = animals
+      prevLengthRef.current = animals.length
+    }
   }, [animals])
 
   useEffect(() => {
     if (animals.length === 0) return
 
-    const EMOJI_SIZE = 6
+    // Reset lastTime when tab regains focus to avoid delta spike
+    const onVisible = () => { lastTimeRef.current = 0 }
+    document.addEventListener('visibilitychange', onVisible)
 
-    const tick = () => {
+    const tick = (timestamp: number) => {
+      if (lastTimeRef.current === 0) lastTimeRef.current = timestamp
+      const delta = Math.min((timestamp - lastTimeRef.current) / 16.67, 3)
+      lastTimeRef.current = timestamp
+
       stateRef.current = stateRef.current.map(a => {
         let { x, y, vx, vy, facingLeft } = a
 
-        // Land: plod steadily, occasional gentle turn
         if (Math.random() < 0.01) {
           vx += (Math.random() - 0.5) * 0.025
           vy += (Math.random() - 0.5) * 0.025
         }
         const spd = Math.sqrt(vx * vx + vy * vy)
-        if (spd > 0.05)  { vx = (vx / spd) * 0.05;  vy = (vy / spd) * 0.05 }
-        if (spd < 0.02) { vx *= 1.03; vy *= 1.03 }
+        if (spd > 0.05)  { vx = (vx / spd) * 0.05; vy = (vy / spd) * 0.05 }
+        if (spd < 0.02)  { vx *= 1.03; vy *= 1.03 }
 
-        x += vx
-        y += vy
+        x += vx * delta
+        y += vy * delta
 
         const min = PEN_PADDING
         const max = 100 - PEN_PADDING - EMOJI_SIZE
@@ -96,37 +107,45 @@ function useLandMovement(animals: AnimalPos[]) {
         if (y > max) { y = max; vy = -Math.abs(vy) }
 
         facingLeft = vx < 0
+
+        // Write directly to DOM — zero React involvement, zero flicker
+        const el = domRefs.current.get(a.id)
+        if (el) {
+          el.style.left = `${x}%`
+          el.style.top = `${y}%`
+          el.style.transform = `scaleX(${facingLeft ? -1 : 1})`
+        }
+
         return { ...a, x, y, vx, vy, facingLeft }
       })
 
-      forceRender(n => n + 1)
       rafRef.current = requestAnimationFrame(tick)
     }
 
     rafRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafRef.current)
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [animals.length])
-
-  return stateRef
-}
-
-function LandPen({ animals }: { animals: AnimalPos[] }) {
-  const penRef = useRef<HTMLDivElement>(null)
-  const posRef = useLandMovement(animals)
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 px-1">
         <span className="text-base">🌿</span>
         <span className="text-xs font-bold uppercase tracking-widest text-[#374151] font-mono">Land Enclosure</span>
-        <span className="ml-auto text-xs text-[#9CA3AF] font-mono">{animals.length} animal{animals.length !== 1 ? 's' : ''}</span>
+        <span className="ml-auto text-xs text-[#9CA3AF] font-mono">
+          {animals.length} animal{animals.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       <div
-        ref={penRef}
         className="relative w-full overflow-hidden"
         style={{
           aspectRatio: '4/3',
+          touchAction: 'none',
+          userSelect: 'none',
+          pointerEvents: 'none',
           background: `
             repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0,0,0,0.05) 15px, rgba(0,0,0,0.05) 16px),
             repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(0,0,0,0.05) 15px, rgba(0,0,0,0.05) 16px),
@@ -149,7 +168,6 @@ function LandPen({ animals }: { animals: AnimalPos[] }) {
           />
         ))}
 
-        {/* Empty state */}
         {animals.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-50">
             <span className="text-5xl">🥚</span>
@@ -157,20 +175,24 @@ function LandPen({ animals }: { animals: AnimalPos[] }) {
           </div>
         )}
 
-        {/* Wandering animals */}
-        {posRef.current.map(a => (
+        {/* Rendered once — positions updated via DOM refs, no re-renders */}
+        {animals.map(a => (
           <div
             key={a.id}
+            ref={el => {
+              if (el) domRefs.current.set(a.id, el)
+              else domRefs.current.delete(a.id)
+            }}
             className="absolute select-none pointer-events-none"
             style={{
               left: `${a.x}%`,
               top: `${a.y}%`,
-              fontSize: '3rem',
+              fontSize: '2.4rem',
               lineHeight: 1,
               transform: `scaleX(${a.facingLeft ? -1 : 1})`,
-              transition: 'left 0.06s linear, top 0.06s linear',
               zIndex: 5,
               filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.25))',
+              willChange: 'left, top, transform',
             }}
             title={a.name}
           >
@@ -195,7 +217,7 @@ export default function ZooPage() {
     } catch {}
   }, [])
 
-  const landAnimals = useCallback((): AnimalPos[] => {
+  const buildAnimals = useCallback((): AnimalPos[] => {
     const result: AnimalPos[] = []
     collectedUrls.forEach(url => {
       const idx = RESOURCE_ANIMAL_MAP[url]
@@ -206,12 +228,12 @@ export default function ZooPage() {
     return result
   }, [collectedUrls])
 
-  const animals = mounted ? landAnimals() : []
+  const animals = useMemo(() => mounted ? buildAnimals() : [], [mounted, buildAnimals])
   const total = animals.length
 
   return (
     <div
-      className="min-h-full overflow-y-auto"
+      className="h-full overflow-y-auto"
       style={{
         background: `
           repeating-linear-gradient(0deg, transparent, transparent 11px, rgba(0,0,0,0.06) 11px, rgba(0,0,0,0.06) 12px),
@@ -221,31 +243,29 @@ export default function ZooPage() {
         `,
       }}
     >
-      {/* Header */}
       <div
-        className="px-5 py-4 flex items-center justify-between"
+        className="px-5 py-4 flex items-center justify-between sticky top-0 z-20"
         style={{
-          background: 'rgba(0,0,0,0.45)',
+          background: 'rgba(0,0,0,0.55)',
           borderBottom: '3px solid #78350f',
           boxShadow: '0 3px 0 #d97706',
-          backdropFilter: 'blur(2px)',
+          backdropFilter: 'blur(4px)',
         }}
       >
         <button
           onClick={() => router.push('/learning')}
           className="flex items-center gap-1.5 text-[#fbbf24] hover:text-white text-sm font-bold transition-colors font-mono"
         >
-          ◀ Back to Learning
+          ◀ Back
         </button>
         <div className="text-center">
           <p className="text-[#fbbf24] font-bold text-base font-mono">🦁 My Zoo</p>
           <p className="text-[#d97706] text-xs font-mono">{total} animal{total !== 1 ? 's' : ''} collected</p>
         </div>
-        <div className="w-32" />
+        <div className="w-16" />
       </div>
 
-      {/* Single centred pen */}
-      <div className="p-4 sm:p-8 flex justify-center">
+      <div className="p-4 sm:p-8 pb-8 flex justify-center">
         <div className="w-full max-w-2xl">
           <LandPen animals={animals} />
         </div>
