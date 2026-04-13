@@ -14,8 +14,6 @@ const CLUB_DAYS = [1, 3, 4, 5] // Mon, Wed, Thu, Fri (0=Sun, 6=Sat)
 // Hard-coded 2025-26 term breaks.
 // - inset: true  → no school all day (skip the 1:30pm carve-out)
 // - inset: false → last school day has 1:30pm finish; break triggers after that
-const SUMMER_TERM_START = '2026-04-13'
-
 const TERM_BREAKS = [
   { start: '2025-09-01', end: '2025-09-02', label: 'INSET days',      back: 'Wednesday 3rd September', inset: true },
   { start: '2025-10-10', end: '2025-10-10', label: 'INSET day',       back: 'Monday 13th October',    inset: true },
@@ -216,11 +214,16 @@ export default function HomePage() {
   const status = getSchoolStatus(now, nearbyEvents)
   const latest3 = emails.slice(0, 3)
   const todayStr = format(now, 'yyyy-MM-dd')
-  const isSummerTerm = todayStr >= SUMMER_TERM_START
   const day = now.getDay()
-  const isPeToday = day === 1 || day === 4
-  const isPeTomorrow = day === 0 || day === 3
-  const showPeReminder = isSummerTerm && (isPeToday || isPeTomorrow)
+  const tomorrowStr = format(addDays(now, 1), 'yyyy-MM-dd')
+  const todayInBreak    = TERM_BREAKS.find(b => todayStr    >= b.start && todayStr    <= b.end)
+  const tomorrowInBreak = TERM_BREAKS.find(b => tomorrowStr >= b.start && tomorrowStr <= b.end)
+  // PE days: Monday (1) and Thursday (4)
+  // Show "PE today" when it's a PE day and school is in session (not a break/INSET/weekend)
+  const isPeToday    = !todayInBreak && !isWeekend(now) && (day === 1 || day === 4)
+  // Show "PE tomorrow" the evening before a PE day, as long as tomorrow isn't a break/INSET
+  const isPeTomorrow = !tomorrowInBreak && (day === 0 || day === 3)
+  const showPeReminder = isPeToday || isPeTomorrow
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
