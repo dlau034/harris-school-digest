@@ -9,10 +9,9 @@ const CONFIG = {
   SUPABASE_SERVICE_KEY:  PropertiesService.getScriptProperties().getProperty('SUPABASE_SERVICE_KEY'),
   DRIVE_FOLDER_NAME:     'School Email PDFs',
   PROCESSED_LABEL:       'school-digest-processed',
-  // Matches school emails by subject keywords OR sender domain
-  // Subject keywords catch most school emails
-  // bromcomcloud.com searches the email body (works even when forwarded)
-  SEARCH_QUERY:          'subject:beckenham OR subject:harris OR subject:"primary academy" OR subject:bromcomcloud OR bromcomcloud.com'
+  // Matches BromcomCloud emails by subject or body content
+  // bromcomcloud.com body search catches forwarded notifications too
+  SEARCH_QUERY:          'subject:bromcomcloud OR bromcomcloud.com'
 };
 
 // ============================================================
@@ -118,6 +117,9 @@ function processMessage(message) {
   claudeResult.events.forEach(event => {
     upsertCalendarEvent(event, emailId);
   });
+
+  // Embed email content for RAG
+  embedEmailContent(emailId, subject, sender, date.toISOString(), emailBody, pdfText);
 
   Logger.log('Processed: ' + subject + ' → emailId: ' + emailId);
 }

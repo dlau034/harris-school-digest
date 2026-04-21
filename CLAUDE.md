@@ -262,7 +262,7 @@ The ingestion pipeline runs entirely in Google Apps Script — **do not edit thi
 
 ### What the pipeline does
 1. **Trigger:** Runs `processNewSchoolEmails()` daily (weekdays only). A separate `processAllSchoolEmails()` function is used for bulk historical backfill.
-2. **Gmail search:** Finds unprocessed school emails using subject/body keywords (`beckenham`, `harris`, `primary academy`, `bromcomcloud`). Processed emails get a Gmail label `school-digest-processed`.
+2. **Gmail search:** Finds unprocessed school emails matching `subject:bromcomcloud OR bromcomcloud.com`. Processed emails get a Gmail label `school-digest-processed`.
 3. **PDF handling:** Finds PDF attachments, uploads them to a Google Drive folder called **"School Email PDFs"** (publicly shared, view-only), and runs Drive OCR (`Drive.Files.create` with `mimeType: google-apps.document`) to extract text.
 4. **Gemini API:** Calls `gemini-2.5-flash` (free tier, 1,500 req/day) with email body + PDF text to produce a JSON `{ summary, tags, events[] }`.
 5. **Supabase writes:** Inserts into `email_summaries` and upserts into `calendar_events` (deduplication by date + title prefix).
